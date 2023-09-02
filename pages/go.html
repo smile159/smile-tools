@@ -155,7 +155,9 @@
     };
 
 
-    source.value = sqlStatement
+    // source.value = sqlStatement
+    source.placeholder = sqlStatement
+
 
     function convertWord(word) {
         return word.charAt(0).toUpperCase() + word.slice(1)
@@ -196,7 +198,7 @@
         } catch (err) {
             target.value = "格式错误，请重新输入"
         }
-        console.log(parseResult);
+        // console.log(parseResult);
         // 保存最终的结果
         let result
 
@@ -212,7 +214,7 @@
         result += `type ${tableName} struct {\n`
 
         const columns = parseResult.columns
-        console.log(columns)
+        // console.log(columns)
         columns.forEach(e => {
             // 名字，mysql的名字可能分两端 用_连接
             const nameList = e.name.split("_")
