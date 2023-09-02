@@ -100,20 +100,13 @@
     const copy = document.getElementById("copy")
 
 
-    const sqlStatement = `CREATE TABLE \`admin\`  (
-        \`id\` char(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '主键ID',
-        \`name\` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '昵称',
-        \`password\` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '密码',
-        \`avatar\` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '头像',
-        \`phone\` char(11) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '手机号码',
-        \`email\` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '电子邮箱',
-        \`status\` tinyint(4) NOT NULL DEFAULT 0 COMMENT '账户状态',
-        \`identity_code\` tinyint(4) NOT NULL DEFAULT 1 COMMENT '身份码 0 超级管理员 1 管理员',
-        \`create_time\` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建日期',
-        \`update_time\` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '更新日期',
-        \`ip\` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT 'ip地址',
-        \`ip_city\` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT 'ip地区'
-      ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '管理员'`;
+    const sqlStatement = `CREATE TABLE \`users\` (
+  \`id\` INT(11) NOT NULL AUTO_INCREMENT COMMENT '用户ID',
+  \`name\` VARCHAR(50) NOT NULL COMMENT '用户名称',
+  \`email\` VARCHAR(100) NOT NULL COMMENT '用户电子邮件地址',
+  \`password\` VARCHAR(100) NOT NULL COMMENT '用户密码',
+  \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间'
+) COMMENT='用户信息表';`;
     const mysqlToGoTypes = {
         // 数值类型
         'TINYINT': 'int8',
@@ -174,9 +167,12 @@
     }
 
     function copyResult() {
-        // copyToClip(target.value)
-        console.log(target.value)
-        navigator.clipboard.writeText(target.value).then(
+        const copyValue = target.value
+        if (copyValue === "") {
+            alert("请先转换")
+            return
+        }
+        navigator.clipboard.writeText().then(
             () => {
                 copy.innerText = "复制成功"
                 setTimeout(() => {
@@ -190,8 +186,14 @@
     }
 
     function convert() {
+        const value = source.value
+        if (value === "") {
+            alert("请先输入内容")
+            return
+        }
+
         // 去除ROW_FORMAT
-        let sql = source.value.replace(/ROW_FORMAT\s{0,}=\s{0,}.*?(\s|;)/, '');
+        let sql = value.replace(/ROW_FORMAT\s{0,}=\s{0,}.*?(\s|;)/, '');
         let parseResult
         try {
             parseResult = window.SqlParser.parse(sql)[0];
