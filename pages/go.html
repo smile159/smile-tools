@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.2.3/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            background-color: #f6f6f6;
+        }
+
+        .main {
+            width: 80%;
+            height: 100%;
+            margin: 0 auto;
+            overflow: hidden;
+            margin-top: 50px;
+        }
+
+        .main .actions .options {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .main .actions .options .left {
+            display: flex;
+        }
+
+        .main .actions .options .left .form-check {
+            margin-right: 10px;
+        }
+    </style>
+</head>
+
+<body>
+<div class="main">
+    <!-- 功能区 -->
+    <div class="actions">
+        <!-- 配置区域 -->
+        <div class="options">
+            <div class="left">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="" checked id="gorm">
+                    <label class="form-check-label" for="gorm">
+                        gorm
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="" checked id="json">
+                    <label class="form-check-label" for="json">
+                        json
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="" id="form">
+                    <label class="form-check-label" for="form">
+                        form
+                    </label>
+                </div>
+            </div>
+            <div class="right">
+                <button type="button" class="btn btn-primary" onclick="convert()">转换</button>
+                <button type="button" class="btn btn-success" id="copy" onclick="copyResult()">复制结果</button>
+            </div>
+        </div>
+        <!--  -->
+        <div class="content">
+            <div class="mb-3">
+                <label for="source" class="form-label">SQL语句</label>
+                <textarea class="form-control" id="source" rows="12"></textarea>
+            </div>
+            <div class="mb-3">
+                <label for="target" class="form-label">struct</label>
+                <textarea class="form-control" id="target" rows="12"></textarea>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.2.3/js/bootstrap.bundle.min.js"></script>
+<script src="../assets/js/sql-parser.js"></script>
+
+<script>
+    const source = document.getElementById("source")
+    const target = document.getElementById("target")
+    const gorm = document.getElementById("gorm")
+    const json = document.getElementById("json")
+    const form = document.getElementById("form")
+    const copy = document.getElementById("copy")
+
+
+    const sqlStatement = `CREATE TABLE \`admin\`  (
+        \`id\` char(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '主键ID',
+        \`name\` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '昵称',
+        \`password\` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '密码',
+        \`avatar\` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '头像',
+        \`phone\` char(11) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '手机号码',
+        \`email\` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '电子邮箱',
+        \`status\` tinyint(4) NOT NULL DEFAULT 0 COMMENT '账户状态',
+        \`identity_code\` tinyint(4) NOT NULL DEFAULT 1 COMMENT '身份码 0 超级管理员 1 管理员',
+        \`create_time\` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建日期',
+        \`update_time\` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '更新日期',
+        \`ip\` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT 'ip地址',
+        \`ip_city\` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT 'ip地区'
+      ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '管理员'`;
+    const mysqlToGoTypes = {
+        // 数值类型
+        'TINYINT': 'int8',
+        'SMALLINT': 'int16',
+        'MEDIUMINT': 'int32',
+        'INT': 'int32',
+        'BIGINT': 'int64',
+        'FLOAT': 'float32',
+        'DOUBLE': 'float64',
+        'DECIMAL': 'float64',
+
+        // 字符串类型
+        'CHAR': 'string',
+        'VARCHAR': 'string',
+        'TEXT': 'string',
+        'TINYTEXT': 'string',
+        'MEDIUMTEXT': 'string',
+        'LONGTEXT': 'string',
+
+        // 日期与时间类型
+        'DATE': 'time.Time',
+        'DATETIME': 'time.Time',
+        'TIMESTAMP': 'time.Time',
+        'TIME': 'time.Time',
+        'YEAR': 'int16',
+
+        // 布尔类型
+        'BIT': 'bool',
+
+        // 其他类型
+        'BINARY': '[]byte',
+        'VARBINARY': '[]byte',
+        'BLOB': '[]byte',
+        'TINYBLOB': '[]byte',
+        'MEDIUMBLOB': '[]byte',
+        'LONGBLOB': '[]byte',
+        'ENUM': 'string',
+        'SET': 'string'
+    };
+
+
+    source.value = sqlStatement
+
+    function convertWord(word) {
+        return word.charAt(0).toUpperCase() + word.slice(1)
+    }
+
+    // 复制到剪贴板
+    function copyToClip(content) {
+        var inp = document.createElement("input")
+        inp.setAttribute("value", content)
+        document.body.appendChild(inp)
+        inp.select()
+        document.execCommand("copy")
+        document.body.removeChild(inp)
+    }
+
+    function copyResult() {
+        // copyToClip(target.value)
+        console.log(target.value)
+        navigator.clipboard.writeText(target.value).then(
+            () => {
+                copy.innerText = "复制成功"
+                setTimeout(() => {
+                    copy.innerText = "复制结果"
+                }, 2000)
+            },
+            () => {
+                console.log("clipboard write failed");
+            }
+        );
+    }
+
+    function convert() {
+        // 去除ROW_FORMAT
+        let sql = source.value.replace(/ROW_FORMAT\s{0,}=\s{0,}.*?(\s|;)/, '');
+        let parseResult
+        try {
+            parseResult = window.SqlParser.parse(sql)[0];
+        } catch (err) {
+            target.value = "格式错误，请重新输入"
+        }
+        console.log(parseResult);
+        // 保存最终的结果
+        let result
+
+        // 提取表备注作为第一行注释
+        options = parseResult.options
+        let tableComment = options.filter((e) => {
+            return e.key === "COMMENT"
+        })[0].value
+        result = `//${tableComment}\n`
+
+        // 提取表名作为 tpye name struct
+        let tableName = convertWord(parseResult.name)
+        result += `type ${tableName} struct {\n`
+
+        const columns = parseResult.columns
+        console.log(columns)
+        columns.forEach(e => {
+            // 名字，mysql的名字可能分两端 用_连接
+            const nameList = e.name.split("_")
+
+            // 大驼峰 AxxBxx
+            let upperCamelCase = ""
+
+            // 小驼峰 axxBxx
+            let lowerCamelCase = ""
+
+            // 如果有下划线
+            if (nameList.length > 1) {
+                upperCamelCase = convertWord(nameList[0]) + convertWord(nameList[1])
+                lowerCamelCase = nameList[0] + convertWord(nameList[1])
+            } else {
+                upperCamelCase = convertWord(nameList[0])
+                lowerCamelCase = nameList[0]
+            }
+
+            // 名子
+            result += `\t${upperCamelCase} `
+
+            // 类型
+            result += `${mysqlToGoTypes[e.data_type.type]} `
+
+            // 标签
+            // 如果选中了gorm
+            if (gorm.checked) {
+                result += `\`gorm:"column:${e.name}"`
+            }
+
+            if (json.checked) {
+                result += ` json:"${lowerCamelCase}"`
+            }
+
+            if (form.checked) {
+                result += ` form:"${lowerCamelCase}"`
+            }
+
+            // 注释
+            result += `\` //${e.comment}\n`
+        })
+
+        result += "}"
+
+        target.value = result
+    }
+</script>
+</body>
+
+</html>
